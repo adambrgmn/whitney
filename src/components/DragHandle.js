@@ -15,6 +15,7 @@ class DragHandle extends PureComponent {
     this.setState(() => ({ state: STATES.hover }));
     if (this.props.onMouseEnter) this.onMouseEnter(event);
   };
+
   handleMouseLeave = event => {
     this.setState(() => ({ state: STATES.normal }));
     if (this.props.onMouseLeave) this.onMouseLeave(event);
@@ -22,8 +23,8 @@ class DragHandle extends PureComponent {
 
   render() {
     const { state } = this.state;
-    const fill = state === STATES.hover ? 'blue' : 'transparent';
-    const stroke = state === STATES.hover ? 'black' : 'grey';
+    const fill = state === STATES.hover ? 'grey' : 'white';
+    const stroke = state === STATES.hover ? 'black' : 'black';
 
     return (
       <Circle

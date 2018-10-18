@@ -1,5 +1,6 @@
 import React, { PureComponent } from 'react';
-import { Stage, Layer, Image } from 'react-konva';
+import { Layer, Image, Rect } from 'react-konva';
+import { Stage } from './styles';
 import { DragHandle } from './DragHandle';
 
 const cap = (min, max, val) => (val < min ? min : val > max ? max : val);
@@ -72,17 +73,38 @@ class Artboard extends PureComponent {
     return { width, height };
   };
 
-  handleDrag = event => {
+  handleDrag = ({ key }) => event => {
     const { width: artboardWidth, height: artboardHeight } = this.props;
-    const { x: oldX, y: oldY, width: oldWidth, height: oldHeight } = this.state;
-    const newX = event.currentTarget.x();
-    const newY = event.currentTarget.y();
+    const {
+      x: oldX,
+      y: oldY,
+      width: oldWidth,
+      height: oldHeight,
+      aspect,
+    } = this.state;
 
-    const deltaX = newX - oldX;
-    const deltaY = newY - oldY;
+    let width = 0;
+    let height = 0;
 
-    const width = oldWidth - deltaX * 2;
-    const height = oldHeight - deltaY * 2;
+    switch (key) {
+      case 'top':
+      case 'bottom':
+        const newY = event.target.y();
+        const deltaY = newY - oldY;
+
+        height = oldHeight - deltaY * 2;
+        width = height / aspect;
+        break;
+
+      case 'left':
+      case 'right':
+      default:
+        const newX = event.target.x();
+        const deltaX = newX - oldX;
+
+        width = oldWidth - deltaX * 2;
+        height = width * aspect;
+    }
 
     const { x, y } = this.processCenterPos({
       artboardWidth,
@@ -91,31 +113,32 @@ class Artboard extends PureComponent {
       height,
     });
 
-    return this.setState(() => ({
-      x,
-      y,
-      width: oldWidth - deltaX * 2,
-      height: oldHeight - deltaY * 2,
-    }));
+    return this.setState(() => ({ width, height, x, y }));
   };
 
-  boundHandles = ({ x, y }) => {
+  bindHandles = ({ key, x, y }) => newPos => {
     const { width: artboardWidth, height: artboardHeight } = this.props;
 
-    return {
-      x: cap(0, artboardWidth, x),
-      y: cap(0, artboardHeight, y),
-    };
+    switch (key) {
+      case 'top':
+      case 'bottom':
+        return { x, y: cap(0, artboardHeight, newPos.y) };
+      case 'left':
+      case 'right':
+        return { x: cap(0, artboardWidth, newPos.x), y };
+      default:
+        return newPos;
+    }
   };
 
   renderDragHandles = () => {
-    const { width, height, x, y } = this.state;
+    const { width: w, height: h, x, y } = this.state;
 
     const handles = [
-      { key: 'top-left', x, y },
-      { key: 'top-right', x: x + width, y },
-      { key: 'bottom-right', x: x + width, y: y + height },
-      { key: 'bottom-left', x, y: y + height },
+      { key: 'top', x: x + w / 2, y },
+      { key: 'right', x: x + w, y: y + h / 2 },
+      { key: 'bottom', x: x + w / 2, y: y + h },
+      { key: 'left', x, y: y + h / 2 },
     ].map(h => ({ ...h, width: 10, height: 10, fill: 'blue' }));
 
     return (
@@ -125,8 +148,8 @@ class Artboard extends PureComponent {
             key={handle.key}
             {...handle}
             draggable
-            onDragMove={this.handleDrag}
-            dragBoundFunc={this.boundHandles}
+            onDragMove={this.handleDrag(handle)}
+            dragBoundFunc={this.bindHandles(handle)}
           />
         ))}
       </>
@@ -140,6 +163,13 @@ class Artboard extends PureComponent {
     return (
       <Stage width={artboardWidth} height={artboardHeight}>
         <Layer>
+          <Rect
+            width={artboardWidth}
+            height={artboardHeight}
+            x={0}
+            y={0}
+            fill="white"
+          />
           <Image image={image} width={width} height={height} x={x} y={y} />
           {this.renderDragHandles()}
         </Layer>
